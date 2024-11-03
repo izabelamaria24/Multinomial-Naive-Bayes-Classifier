@@ -2,8 +2,6 @@
 
 ## Workflow
 
-## Workflow
-
 - Every team member has their own branch.
 - If a team member wants to merge their branch with the main branch, a pull request is mandatory, and it must be accepted by at least one team member.
 
