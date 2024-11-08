@@ -59,6 +59,7 @@ def bayes(word, categ):
     result = prob_categ * prob_word_cond_categ / prob_word
     return round(result, 5)
 
+
 for key, dict_for_categ in categories.items():
 
     for word, ct in dict_for_categ.items():
@@ -75,10 +76,4 @@ for key, dict_for_categ in categories.items():
     print(top_50_items)
     
     #print(categories[key])    
-    
-    
-    
-    
-    
-    
-    
+
