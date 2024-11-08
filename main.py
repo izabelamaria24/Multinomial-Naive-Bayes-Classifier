@@ -50,11 +50,22 @@ with open('filtered_movies.csv', mode='r', encoding='utf-8') as file:
 # exit(0) 
 
 def bayes(word, categ):
-    prob_categ = 1 * 100/len(categories)
-    prob_word = dict_all_words_from_our_planet[word][0]*100/total_words_count
-    prob_word_cond_categ = categories[categ][word][0]*100/lengths[categ]
+    # Prior probability of the category
+    prob_categ = categories_count[categ] / sum(categories_count.values())
+    
+    # Global probability of the word
+    prob_word = dict_all_words_from_our_planet.get(word, [0, 0])[0] / total_words_count
+    
+    # Probability of the word in the given category
+    prob_word_cond_categ = categories[categ].get(word, [0, 0])[0] / lengths[categ]
+    
+    # Prevent division by zero
+    if prob_word == 0:
+        return 0
+    
+    # Bayes' formula
     result = prob_categ * prob_word_cond_categ / prob_word
-    return round(result,2)
+    return round(result, 5)
 
 for key, dict_for_categ in categories.items():
 
@@ -72,5 +83,10 @@ for key, dict_for_categ in categories.items():
     print(top_50_items)
     
     #print(categories[key])    
-
-        
+    
+    
+    
+    
+    
+    
+    
