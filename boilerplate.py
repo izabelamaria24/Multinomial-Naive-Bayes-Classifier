@@ -1,9 +1,13 @@
 import csv
 import re
 import random
+from collections import Counter
+from sklearn.metrics import classification_report, confusion_matrix
+from nltk.corpus import stopwords
+from nltk.stem import PorterStemmer
+from sklearn.model_selection import train_test_split
 
 length_all_words_from_our_planet = 0
-
 MAX_COUNTER = 1000000
 DRAMA = "drama"
 HORROR = "horror"
@@ -12,9 +16,10 @@ ADVENTURE = "adventure"
 COMEDY = "comedy"
 
 pattern = re.compile(r'[a-zA-Z]+')
+stop_words = set(stopwords.words('english'))
+stemmer = PorterStemmer()
 
 categories_dict = {
-    # dict of words (the key will be the word and the value, how many plots from the category it appears)
     DRAMA: {}, 
     HORROR: {},
     ROMANCE: {},
@@ -22,7 +27,6 @@ categories_dict = {
     COMEDY: {}
 }
 
-# container for ALL of the plots described below
 plots = {
     DRAMA: [], 
     HORROR: [],
@@ -39,68 +43,90 @@ test_plots = {
     COMEDY: []
 }
 
+bayes_category_dict = {} 
 
 def preprocess_plot(plot):
-    # TODO -> preprocess given plot
-    # return a list of words (tokens)'
-    tokens = set([word for word in pattern.findall(plot) if not word[0].isupper()])
-    return tokens
+    tokens = [
+        stemmer.stem(word.lower()) 
+        for word in pattern.findall(plot) 
+        if word.lower() not in stop_words
+    ]
+    return set(tokens)
+
+
+def balance_dataset():
+    min_count = min(len(plots[category]) for category in plots)
+    
+    for category in plots:
+        if len(plots[category]) > min_count:
+            plots[category] = random.sample(plots[category], min_count)
 
 def open_func():
     with open('filtered_movies.csv', mode='r', encoding='utf-8') as file:
         csv_reader = list(csv.reader(file))[1:]
-        #random.shuffle(csv_reader)
-        num_rows = int(len(csv_reader) * 0.8)
 
-        # for every row (plot), preprocess it, and keep only the preprocessed words from the plot (tokens) 
-        # keep a list with all of the data (a list of tuples (preprocessed plot (string), genre (string)))
-        # we can use a dict too, but then we will need to filter based on the genre when we need it
+    plots_list = [row[0] for row in csv_reader] 
+    genres_list = [row[1] for row in csv_reader] 
 
-        for row in csv_reader[:num_rows]:
-            plot = row[0]
-            genre = row[1]
+    train_plots, test_plots_data, train_genres, test_genres = train_test_split(
+        plots_list, genres_list, test_size=0.2, stratify=genres_list, random_state=42
+    )
+
+    for plot, genre in zip(train_plots, train_genres):
+        if genre in plots:
             if len(plots[genre]) > MAX_COUNTER:
                 continue
             tokens = preprocess_plot(plot)
             plots[genre].append(tokens)
-
-        for row in csv_reader[num_rows:]:
-            plot = row[0]
-            genre = row[1]
+    
+    for plot, genre in zip(test_plots_data, test_genres):
+        if genre in test_plots:
             tokens = preprocess_plot(plot)
             test_plots[genre].append(tokens)
+    
+    balance_dataset()
 
-total_plots = 0
-# for every category, iterate through its plots 
-# for each word, increment the counter 
+
 def category_tokens():
-    # TODO -> populate the categories_dict
     for category, category_plots in plots.items():
         for plot in category_plots:
             for word in plot:
                 categories_dict[category][word] = categories_dict[category].get(word, 0) + 1
 
 
-
-bayes_category_dict = {} # dict for keeping probabilities
 def test_bayes(plot):
-    # TODO -> test the bayes on a given plot
-    # return the category with the highest probability
+    bayes_category_dict.clear()
     for category in categories_dict:
         prod = len(plots[category]) / total_plots
+        
+        total_words_in_category = sum(categories_dict[category].values())
+        vocab_size = len(categories_dict[category]) 
+        
         for word in plot:
-            if categories_dict[category].get(word, 0) == 0:
-                continue
-            prod *= categories_dict[category][word]/len(plots[category])
+            word_count = categories_dict[category].get(word, 0)
+            smoothed_prob = (word_count + 1) / (total_words_in_category + vocab_size)
+            prod *= smoothed_prob
+        
         bayes_category_dict[category] = prod
+    
     return max(bayes_category_dict, key=bayes_category_dict.get)
+
+
+def evaluate():
+    y_true, y_pred = [], []
+    for category in test_plots:
+        for plot in test_plots[category]:
+            y_true.append(category)
+            y_pred.append(test_bayes(plot))
+    
+    print("Classification Report:\n", classification_report(y_true, y_pred))
+    print("Confusion Matrix:\n", confusion_matrix(y_true, y_pred))
 
 def test():
     total_test_plots = sum([len(test_plots[category]) for category in test_plots])
     accuracy = 0
     for category in test_plots:
         for plot in test_plots[category]:
-            #print(f"{test_bayes(plot)}\t{category}")
             if test_bayes(plot) == category:
                 accuracy += 1
     return accuracy / total_test_plots
@@ -110,13 +136,15 @@ def main():
     open_func()
     global total_plots
     total_plots = sum([len(plots[category]) for category in plots])
-    length_all_words_from_our_planet = sum([len(plot) for plot in plots.values()])
     category_tokens()
 
-    [print(len(x)) for x in plots.values()]
-    print()
-    [print(len(x)) for x in test_plots.values()]
-    print(test())
+    print("Training Set Sizes:")
+    [print(f"{category}: {len(plots[category])}") for category in plots]
+    print("\nTesting Set Sizes:")
+    [print(f"{category}: {len(test_plots[category])}") for category in test_plots]
+    
+    print("\nAccuracy:", test())
+    evaluate()
 
 if __name__ == "__main__":
     main()
