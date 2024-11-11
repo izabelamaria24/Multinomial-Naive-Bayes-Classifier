@@ -1,15 +1,13 @@
-import csv
 import re
 import random
-from sklearn.metrics import classification_report, confusion_matrix
+import json
+import math
 
-length_all_words_from_our_planet = 0
-MAX_COUNTER = 10**7
-DRAMA = "drama"
-HORROR = "horror"
-ROMANCE = "romance"
-ADVENTURE = "adventure"
-COMEDY = "comedy"
+DRAMA = "Drama"
+HORROR = "Horror"
+COMEDY = "Comedy"
+THRILLER = "Thriller"
+ACTION = "Action"
 
 pattern = re.compile(r'[a-zA-Z]+')
 
@@ -30,9 +28,9 @@ stop_words = {
     "yourselves"
 }
 
-categories_dict = {DRAMA: {}, HORROR: {}, ROMANCE: {}, ADVENTURE: {}, COMEDY: {}}
-plots = {DRAMA: [], HORROR: [], ROMANCE: [], ADVENTURE: [], COMEDY: []}
-test_plots = {DRAMA: [], HORROR: [], ROMANCE: [], ADVENTURE: [], COMEDY: []}
+categories_dict = {DRAMA: {}, HORROR: {}, COMEDY: {}, ACTION: {}}
+plots = {DRAMA: [], HORROR: [], COMEDY: [], ACTION: []}
+test_plots = {DRAMA: [], HORROR: [], COMEDY: [], ACTION: []}
 bayes_category_dict = {}
 
 def manual_stem(word):
@@ -47,11 +45,10 @@ def manual_stem(word):
     return word
 
 def preprocess_plot(plot):
-    plot = re.sub(r'[^\w\s?!]', '', plot)
     tokens = [
-        manual_stem(word.lower())
-        for word in plot.split()
-        if word.lower() not in stop_words and len(word) > 1
+        manual_stem(word.lower()) 
+        for word in pattern.findall(plot) 
+        if word.lower() not in stop_words
     ]
     return set(tokens)
 
@@ -62,32 +59,46 @@ def balance_dataset():
             plots[category] = random.sample(plots[category], min_count)
 
 def open_func():
-    with open('filtered_movies.csv', mode='r', encoding='utf-8') as file:
-        csv_reader = list(csv.reader(file))[1:]
-    plots_list = [row[0] for row in csv_reader]
-    genres_list = [row[1] for row in csv_reader]
+    with open('balanced_filtered_movies.json', mode='r', encoding='utf-8') as file:
+        movie_data = json.load(file)
+    
+    allowed_genres = [DRAMA, COMEDY, HORROR, ACTION]
+    plots_list, genres_list = [], []
+    
+    for movie in movie_data:
+        if movie['Genre'] in allowed_genres:
+            plots_list.append(movie['Plot'])
+            genres_list.append(movie['Genre'])
 
-    combined = list(zip(plots_list, genres_list))
-    random.shuffle(combined)
-    plots_list, genres_list = zip(*combined)
-
-    split_index = int(0.8 * len(plots_list))
-    train_plots = plots_list[:split_index]
-    test_plots_data = plots_list[split_index:]
-    train_genres = genres_list[:split_index]
-    test_genres = genres_list[split_index:]
+    train_plots, test_plots_data, train_genres, test_genres = train_test_split(
+        plots_list, genres_list, test_size=0.2
+    )
 
     for plot, genre in zip(train_plots, train_genres):
-        if genre in plots and len(plots[genre]) <= MAX_COUNTER:
-            tokens = preprocess_plot(plot)
-            plots[genre].append(tokens)
-    
+        tokens = preprocess_plot(plot)
+        plots[genre].append(tokens)
+
     for plot, genre in zip(test_plots_data, test_genres):
-        if genre in test_plots:
-            tokens = preprocess_plot(plot)
-            test_plots[genre].append(tokens)
-    
+        tokens = preprocess_plot(plot)
+        test_plots[genre].append(tokens)
+
     balance_dataset()
+
+def train_test_split(data, labels, test_size=0.2):
+    data_size = len(data)
+    indices = list(range(data_size))
+    random.shuffle(indices)
+    split_idx = int(data_size * (1 - test_size))
+    
+    train_indices = indices[:split_idx]
+    test_indices = indices[split_idx:]
+    
+    train_data = [data[i] for i in train_indices]
+    train_labels = [labels[i] for i in train_indices]
+    test_data = [data[i] for i in test_indices]
+    test_labels = [labels[i] for i in test_indices]
+    
+    return train_data, test_data, train_labels, test_labels
 
 def category_tokens():
     for category, category_plots in plots.items():
@@ -97,34 +108,18 @@ def category_tokens():
 
 def test_bayes(plot):
     bayes_category_dict.clear()
+    
     for category in categories_dict:
-        prod = len(plots[category]) / total_plots
+        log_prob = math.log(len(plots[category]) / total_plots)
         total_words_in_category = sum(categories_dict[category].values())
         vocab_size = len(categories_dict[category])
-
-        for word in plot:
-            word_count = categories_dict[category].get(word, 0)
-            smoothed_prob = (word_count + 1) / (total_words_in_category + vocab_size)
-            prod *= smoothed_prob
-        
-        bayes_category_dict[category] = prod
-    
-    return max(bayes_category_dict, key=bayes_category_dict.get)
-
-def test_bayes_laplace_smoothing(plot, alpha=0.5):
-    bayes_category_dict.clear()
-    
-    for category in categories_dict:
-        prod = len(plots[category]) / total_plots
-        total_words_in_category = sum(categories_dict[category].values())
-        vocab_size = len(categories_dict)
         
         for word in plot:
             word_count = categories_dict[category].get(word, 0)
-            smoothed_prob = (word_count + alpha) / (total_words_in_category + alpha * vocab_size)
-            prod *= smoothed_prob
+            smoothed_prob = (word_count + 0.5) / (total_words_in_category + vocab_size)
+            log_prob += math.log(smoothed_prob)
         
-        bayes_category_dict[category] = prod
+        bayes_category_dict[category] = log_prob
     
     return max(bayes_category_dict, key=bayes_category_dict.get)
 
@@ -135,24 +130,24 @@ def evaluate():
             y_true.append(category)
             y_pred.append(test_bayes(plot))
     
-    print("Classification Report:\n", classification_report(y_true, y_pred))
-    print("Confusion Matrix:\n", confusion_matrix(y_true, y_pred))
-
+    accuracy = sum(1 for true, pred in zip(y_true, y_pred) if true == pred) / len(y_true)
+    
 def test():
-    total_test_plots = sum([len(test_plots[category]) for category in test_plots])
-    accuracy = sum(1 for category in test_plots for plot in test_plots[category] if test_bayes_laplace_smoothing(plot) == category)
+    total_test_plots = sum(len(test_plots[category]) for category in test_plots)
+    accuracy = sum(1 for category in test_plots for plot in test_plots[category] if test_bayes(plot) == category)
     return accuracy / total_test_plots
 
 def main():
     open_func()
     global total_plots
-    total_plots = sum([len(plots[category]) for category in plots])
+    total_plots = sum(len(plots[category]) for category in plots)
     category_tokens()
 
     print("Training Set Sizes:")
     [print(f"{category}: {len(plots[category])}") for category in plots]
     print("\nTesting Set Sizes:")
     [print(f"{category}: {len(test_plots[category])}") for category in test_plots]
+    
     print("\nAccuracy:", test())
     evaluate()
 
