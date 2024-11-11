@@ -2,6 +2,7 @@ import re
 import random
 import json
 import math
+import numpy as np
 from sklearn.metrics import classification_report, confusion_matrix
 from stop_words import stop_words
 
@@ -18,6 +19,8 @@ plots = {DRAMA: [], HORROR: [], COMEDY: [], ACTION: []}
 test_plots = {DRAMA: [], HORROR: [], COMEDY: [], ACTION: []}
 bayes_category_dict = {}
 
+vocab = []
+word_to_index = {}
 
 def manual_stem(word):
     if word.endswith("ing") and len(word) > 4:
@@ -45,8 +48,8 @@ def balance_dataset():
     for category in plots:
         if len(plots[category]) > min_count:
             plots[category] = random.sample(plots[category], min_count)
-            
-            
+
+
 def open_func():
     with open('balanced_filtered_movies.json', mode='r', encoding='utf-8') as file:
         movie_data = json.load(file)
@@ -72,8 +75,8 @@ def open_func():
         test_plots[genre].append(tokens)
 
     balance_dataset()
-    
-    
+
+
 def train_test_split(data, labels, test_size=0.2):
     data_size = len(data)
     indices = list(range(data_size))
@@ -91,28 +94,48 @@ def train_test_split(data, labels, test_size=0.2):
     return train_data, test_data, train_labels, test_labels
 
 
+def update_vocab():
+    global vocab, word_to_index
+    word_set = set()
+    for category, category_plots in plots.items():
+        for plot in category_plots:
+            word_set.update(plot)
+    
+    vocab = sorted(list(word_set))
+    word_to_index = {word: i for i, word in enumerate(vocab)}
+
+
 def category_tokens():
     for category, category_plots in plots.items():
         for plot in category_plots:
             for word in plot:
-                categories_dict[category][word] = categories_dict[category].get(word, 0) + 1
-                
+                word_index = word_to_index[word]
+                if word_index not in categories_dict[category]:
+                    categories_dict[category][word_index] = 0
+                categories_dict[category][word_index] += 1
+
 
 def test_bayes(plot):
     bayes_category_dict.clear()
-    
+    plot_indices = [word_to_index.get(word, -1) for word in plot if word in word_to_index]
+
     for category in categories_dict:
         log_prob = math.log(len(plots[category]) / total_plots)
         total_words_in_category = sum(categories_dict[category].values())
         vocab_size = len(categories_dict[category])
-        
-        for word in plot:
-            word_count = categories_dict[category].get(word, 0)
-            smoothed_prob = (word_count + 0.5) / (total_words_in_category + vocab_size)
-            log_prob += math.log(smoothed_prob)
-        
+
+        log_prob_words = np.zeros(len(vocab))
+
+        for index in plot_indices:
+            if index >= 0:
+                word_count = categories_dict[category].get(index, 0)
+                smoothed_prob = (word_count + 0.5) / (total_words_in_category + vocab_size)
+                log_prob_words[index] = np.log(smoothed_prob)
+
+        log_prob += np.sum(log_prob_words[plot_indices])
+
         bayes_category_dict[category] = log_prob
-    
+
     return max(bayes_category_dict, key=bayes_category_dict.get)
 
 
@@ -126,7 +149,7 @@ def evaluate():
     accuracy = sum(1 for true, pred in zip(y_true, y_pred) if true == pred) / len(y_true)
     print("Classification Report:\n", classification_report(y_true, y_pred))
     print("Confusion Matrix:\n", confusion_matrix(y_true, y_pred))
-    
+
 
 def test():
     total_test_plots = sum(len(test_plots[category]) for category in test_plots)
@@ -138,6 +161,7 @@ def main():
     open_func()
     global total_plots
     total_plots = sum(len(plots[category]) for category in plots)
+    update_vocab()
     category_tokens()
 
     print("Training Set Sizes:")
