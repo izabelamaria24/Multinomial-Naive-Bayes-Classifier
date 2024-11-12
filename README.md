@@ -11,24 +11,25 @@ This project implements a **Naive Bayes classifier** to classify movie plots int
 The classification model follows the **Naive Bayes** algorithm. The core idea is to compute the posterior probability of each category (genre) given a set of features (words in the plot) and choose the genre with the highest probability.
 
 ### Formula:
-The posterior probability for a genre $ C $ given a set of words 
-$ W = w_1, w_2, \dots, w_n $ is:
+The posterior probability for a genre $$C$$ given a set of words 
+$$W = w_1, w_2, \dots, w_n$$ is:
 
-$ P(C \mid W) \propto P(C) \prod_{i=1}^{n} P(w_i \mid C) $
+```math
+P(C \mid W) \propto P(C) \prod_{i=1}^{n} P(w_i \mid C)
+```
 
 Where:
-- $ P(C) $ is the prior probability of a genre.
-- $ P(w_i \mid C) $ is the likelihood of word $ w_i $ appearing in genre $ C $, calculated using a smoothed version of word frequencies.
+- $$P(C)$$ is the prior probability of a genre.
+- $$P(w_i \mid C)$$ is the likelihood of word $$w_i$$ appearing in genre $$C$$, calculated using a smoothed version of word frequencies.
 
 The word likelihood is estimated using the formula:
 
-$
+```math
 P(w_i \mid C) = \frac{\text{count}(w_i, C) + 0.5}{\text{total words in C} + \text{vocabulary size}}
-$
-
+```
 
 Where:
-- $ \text{count}(w_i, C) $ is the count of word $ w_i $ in the training data for genre \( C \).
+- $$\text{count}(w_i, C)$$ is the count of word $$w_i$$ in the training data for genre $$C$$.
 - The smoothing factor of 0.5 is used to prevent zero probabilities.
 
 The genre with the highest posterior probability is selected as the predicted genre for the plot.
@@ -37,13 +38,13 @@ The genre with the highest posterior probability is selected as the predicted ge
 
 The project is structured as follows:
 
-### Fetching the data
+### I. Fetching the data
 We used TMDB API Key to fetch data about movies.
 
-### Filter the data
+### II. Filter the data
 We only kept the movies that have a genre that appears the most. In our case, that genres are: Drama, Horror, Action and Comedy. From the dataset, we only kept the movie plot (description) and the genre (that will be our **label**).
 
-### Preprocess & Classify the data
+### III. Preprocess & Classify the data
 
 1. **`manual_stem(word)`**: A function to manually stem words (remove common suffixes like 'ing', 'ed', 's').
 2. **`preprocess_plot(plot)`**: Preprocesses a movie plot by tokenizing, converting to lowercase, and removing stopwords.
@@ -56,7 +57,7 @@ We only kept the movies that have a genre that appears the most. In our case, th
 9. **`evaluate()`**: Evaluates the model's performance using metrics like accuracy, classification report, and confusion matrix.
 10. **`test()`**: Computes the accuracy of the model on the test set.
 
-### Statistics on the data
+### IV. Statistics on the data
 
 ## Example Usage
 **Make Predictions**: You can use the trained model to predict the genre of new movie plots by using the `test_bayes(plot)` function.
@@ -68,9 +69,6 @@ genre = test_bayes("A mysterious phone call will change the life of the writer V
 print("Predicted Genre:", genre)
 ```
 This will output the predicted genre for the provided movie plot. For example, it might print:
-
-### When installing a new package, run the following commands:
-#### 1. Install the package
 
 ```bash
 Predicted Genre: Horror
@@ -90,6 +88,12 @@ Predicted Genre: Horror
 python bayes.py
 ```
 
+### Evaluation
+The model's performance is evaluated using:
+- **Accuracy**: Proportion of correctly classified plots.
+- **Classification Report**: Includes precision, recall, and F1-score for each genre.
+- **Confusion Matrix**: Visualizes the performance of the classifier by showing actual vs. predicted genres.
+
 ## Top Words Analysis by Genre
 #### The following chart shows the top 5 words for each genre based on their frequency in the plots:
 ![Top Words per Genre](top_words_per_genre.png)
@@ -99,7 +103,7 @@ python bayes.py
 ![Accuracy vs No of Genres](accuracy_vs_genres.png)
 
 
-## Bibliografie
+## Bibliography
 - https://github.com/scikit-learn/scikit-learn/blob/a71860add/sklearn/naive_bayes.py#L778
 - https://scikit-learn.org/dev/modules/naive_bayes.html#multinomial-naive-bayes
 - https://en.wikipedia.org/wiki/Naive_Bayes_classifier
