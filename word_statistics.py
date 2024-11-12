@@ -45,3 +45,25 @@ def word_statistics(plots, categories_dict, vocab, word_to_index):
     plt.tight_layout()
     plt.savefig('top_words_per_genre.png')
     plt.close(fig) 
+
+
+def plot_accuracy_vs_genres():
+    genres = ['5 genres', '4 genres', '3 genres', '2 genres']
+    accuracy = [0.50, 0.63, 0.72, 0.80]
+    colors = ['purple', 'blue', 'green', 'orange']
+
+    plt.figure(figsize=(8, 5))
+    plt.bar(genres, accuracy, color=colors)
+    plt.title('Accuracy vs Number of Genres')
+    plt.xlabel('Number of Genres')
+    plt.ylabel('Accuracy')
+    plt.ylim(0, 1)
+    plt.grid(axis='y', linestyle='--')
+
+    # Annotate bars with accuracy percentages
+    for i, acc in enumerate(accuracy):
+        plt.text(i, acc + 0.02, f'{int(acc * 100)}%', ha='center')
+
+    plt.tight_layout()
+    plt.savefig('accuracy_vs_genres.png')
+    plt.close()
