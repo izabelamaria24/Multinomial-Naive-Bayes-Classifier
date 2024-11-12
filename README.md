@@ -11,23 +11,24 @@ This project implements a **Naive Bayes classifier** to classify movie plots int
 The classification model follows the **Naive Bayes** algorithm. The core idea is to compute the posterior probability of each category (genre) given a set of features (words in the plot) and choose the genre with the highest probability.
 
 ### Formula:
-The posterior probability for a genre \( C \) given a set of words \( W = w_1, w_2, \dots, w_n \) is:
+The posterior probability for a genre $ C $ given a set of words 
+$ W = w_1, w_2, \dots, w_n $ is:
 
 $ P(C \mid W) \propto P(C) \prod_{i=1}^{n} P(w_i \mid C) $
 
 Where:
-- \( P(C) \) is the prior probability of a genre.
-- \( P(w_i \mid C) \) is the likelihood of word \( w_i \) appearing in gSenre \( C \), calculated using a smoothed version of word frequencies.
+- $ P(C) $ is the prior probability of a genre.
+- $ P(w_i \mid C) $ is the likelihood of word $ w_i $ appearing in genre $ C $, calculated using a smoothed version of word frequencies.
 
 The word likelihood is estimated using the formula:
 
-\[
+$
 P(w_i \mid C) = \frac{\text{count}(w_i, C) + 0.5}{\text{total words in C} + \text{vocabulary size}}
-\]
+$
 
 
 Where:
-- \( \text{count}(w_i, C) \) is the count of word \( w_i \) in the training data for genre \( C \).
+- $ \text{count}(w_i, C) $ is the count of word $ w_i $ in the training data for genre \( C \).
 - The smoothing factor of 0.5 is used to prevent zero probabilities.
 
 The genre with the highest posterior probability is selected as the predicted genre for the plot.
