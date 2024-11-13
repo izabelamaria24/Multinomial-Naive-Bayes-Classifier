@@ -100,6 +100,10 @@ The model's performance is evaluated using:
 #### The following chart shows how the number of categories affects the model's accuracy:
 ![Accuracy vs No of Genres](accuracy_vs_genres.png)
 
+## Contributors
+- Soare Alex Antonio (251)
+- Jilavu Maria Izabela (251)
+- Dragomir Daria Nicoleta (252)
 
 ## Bibliography
 - https://github.com/scikit-learn/scikit-learn/blob/a71860add/sklearn/naive_bayes.py#L778
