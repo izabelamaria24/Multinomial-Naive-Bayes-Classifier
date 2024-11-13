@@ -5,6 +5,7 @@ import math
 import numpy as np
 from sklearn.metrics import classification_report, confusion_matrix
 from stop_words import stop_words
+from word_statistics import word_statistics, plot_accuracy_vs_genres
 
 DRAMA = "Drama"
 HORROR = "Horror"
@@ -171,6 +172,8 @@ def main():
     
     print("\nAccuracy:", test())
     evaluate()
+    
+    word_statistics(plots,categories_dict, vocab, word_to_index)
 
 if __name__ == "__main__":
     main()
