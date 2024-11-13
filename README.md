@@ -57,8 +57,6 @@ We only kept the movies that have a genre that appears the most. In our case, th
 9. **`evaluate()`**: Evaluates the model's performance using metrics like accuracy, classification report, and confusion matrix.
 10. **`test()`**: Computes the accuracy of the model on the test set.
 
-### IV. Statistics on the data
-
 ## Example Usage
 **Make Predictions**: You can use the trained model to predict the genre of new movie plots by using the `test_bayes(plot)` function.
 

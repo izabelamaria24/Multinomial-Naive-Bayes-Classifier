@@ -173,7 +173,7 @@ def main():
     print("\nAccuracy:", test())
     evaluate()
     
-    word_statistics(plots,categories_dict, vocab, word_to_index)
+    #word_statistics(plots,categories_dict, vocab, word_to_index)
 
 if __name__ == "__main__":
     main()
