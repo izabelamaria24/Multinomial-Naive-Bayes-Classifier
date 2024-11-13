@@ -159,6 +159,9 @@ def test():
 
 
 def main():
+    print("Enter a movie plot: ")
+    input_plot = input()
+
     open_func()
     global total_plots
     total_plots = sum(len(plots[category]) for category in plots)
@@ -173,6 +176,8 @@ def main():
     print("\nAccuracy:", test())
     evaluate()
     
+    print("Input movie predicted genre: ")
+    print(test_bayes(input_plot))
     #word_statistics(plots,categories_dict, vocab, word_to_index)
 
 if __name__ == "__main__":
